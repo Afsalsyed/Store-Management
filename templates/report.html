@@ -1,0 +1,103 @@
+<!-- report.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales Report</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        h1 {
+            color: #333;
+        }
+        form {
+            margin-bottom: 20px;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        label {
+            margin-right: 10px;
+        }
+        input[type="date"], input[type="text"], button {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            font-size: 14px;
+        }
+        button {
+            background-color: #5cb85c;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #4cae4c;
+        }
+        h2, h3 {
+            color: #555;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        li {
+            background: #fff;
+            margin: 5px 0;
+            padding: 10px;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <nav class="navbar" style="background-color: #e3f2fd">
+                <h2 class="company">{{ company.company_name }}</h2>
+                <h2 class="cash-balance">Cash Balance: {{ company.cash_balance }}</h2>
+                <div class="nav-links">
+                    <a href="{{ url_for('purchase_view') }}" style="text-decoration: none; color: inherit; margin-right: 15px;">Add Purchase</a>
+                    <a href="{{ url_for('item_view') }}" style="text-decoration: none; color: inherit; margin-right: 15px;">Add Item</a>
+                    <a href="{{ url_for('sales_view') }}" style="text-decoration: none; color: inherit; margin-right: 15px;">New Sale</a>
+                </div>
+            </nav>
+        </header>
+    <h1>Sales Report</h1>
+    <form method="POST">
+        <label for="from_date">From Date:</label>
+        <input type="date" name="from_date" required>
+        <label for="to_date">To Date:</label>
+        <input type="date" name="to_date" required>
+        <button type="submit">Generate Report</button>
+    </form>
+
+    {% if total_sales is not none %}
+        <h2>Summary</h2>
+        <p><strong>Total Sales:</strong> {{ total_sales }}</p>
+        <p><strong>Total Purchases:</strong> {{ total_purchases }}</p>
+        <p><strong>Net Profitability:</strong> {{ net_profitability }}</p>
+
+        <h3>Sales Details</h3>
+        <ul>
+            {% for sale in sales %}
+                <li>{{ sale.timestamp }}: {{ sale.amount }}</li>
+            {% endfor %}
+        </ul>
+
+        <h3>Purchase Details</h3>
+        <ul>
+            {% for purchase in purchases %}
+                <li>{{ purchase.timestamp }}: {{ purchase.amount }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+</body>
+</html>

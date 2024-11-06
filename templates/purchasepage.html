@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Purchases</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body class="container mt-5">
+    <header>
+        <nav class="navbar" style="background-color: #e3f2fd">
+                <h2 class="company">{{ company.company_name }}</h2>
+                <h2 class="cash-balance">Cash Balance: {{ company.cash_balance }}</h2>
+                <div class="nav-links">
+                    <a href="{{ url_for('sales_view') }}" style="text-decoration: none; color: inherit; margin-right: 15px;">New Sale</a>
+                    <a href="{{ url_for('item_view') }}" style="text-decoration: none; color: inherit; margin-right: 15px;">Add Item</a>
+                    <a href="{{ url_for('report_view') }}" style="text-decoration: none; color: inherit; margin-right: 15px;">Report</a>
+                </div>
+            </nav>
+        </header>
+    <h1>Purchases</h1>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        <div class="container mt-4">
+            {% for category, message in messages %}
+                <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+    {% endwith %}
+    
+    <!-- Form to Add Purchase -->
+    <form action="{{ url_for('purchase_view') }}" method="POST">
+        <h3>Add New Purchase</h3>
+        <div class="form-group">
+            <label for="item_id">Item</label>
+            <select id="item_id" name="item_id" class="form-control" required>
+                <option value="" disabled selected>Select Item</option>
+                {% for item in items %}
+                    <option value="{{ item.id }}">{{ item.item_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="qty">Quantity</label>
+            <input type="number" id="qty" name="qty" class="form-control" required>
+        </div>
+        <div class="form-group">
+            <label for="rate">Rate</label>
+            <input type="number" id="rate" name="rate" class="form-control" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Add Purchase</button>
+    </form>
+
+    <!-- List of Purchases -->
+    <h3>Purchase List</h3>
+    <table class="table table-bordered text-center">
+        <thead>
+            <tr>
+                <th>Item</th>
+                <th>Quantity</th>
+                <th>Rate</th>
+                <th>Amount</th>
+                <th>Timestamp</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for purchase in purchases %}
+            <tr>
+                <td>{{ purchase.item.item_name }}</td>
+                <td>{{ purchase.qty }}</td>
+                <td>{{  purchase.rate }}</td>
+                <td>{{ purchase.amount }}</td>
+                <td>{{ purchase.timestamp }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <nav aria-label="Page navigation">
+        <ul class="pagination justify-content-center">
+            {% if purchases.has_prev %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for(request.endpoint, page=purchases.prev_num) }}">Previous</a>
+                </li>
+            {% endif %}
+            
+            {% for page_num in purchases.iter_pages() %}
+                {% if page_num %}
+                    <li class="page-item {% if page_num == purchases.page %}active{% endif %}">
+                        <a class="page-link" href="{{ url_for(request.endpoint, page=page_num) }}">{{ page_num }}</a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled"><span class="page-link">…</span></li>
+                {% endif %}
+            {% endfor %}
+    
+            {% if purchases.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for(request.endpoint, page=purchases.next_num) }}">Next</a>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+    
+</body>
+</html>
