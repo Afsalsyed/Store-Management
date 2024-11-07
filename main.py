@@ -63,13 +63,6 @@ def add_company():
 @app.route('/', methods=['GET', 'POST'])
 def item_view():
     if request.method == 'GET':
-        item_id = request.args.get('item_id')
-        if item_id:
-            item = Item.query.get(item_id)
-            if item:
-                return render_template('itempage.html', item=item, company=Company.query.first())
-            else:
-                return "Item not found", 404
         page = request.args.get('page', 1, type=int)
         items = Item.query.paginate(page=page, per_page=10)
         return render_template('itempage.html', items=items, company=Company.query.first())
@@ -121,13 +114,6 @@ def item_view():
 @app.route('/purchase/', methods=['GET', 'POST'])
 def purchase_view():
     if request.method == 'GET':
-        purchase_id = request.args.get('purchase_id')
-        if purchase_id:
-            purchase = Purchase.query.get(purchase_id)
-            if purchase:
-                return render_template('purchasepage.html', purchase=purchase)
-            else:
-                return "Purchase not found", 404
         page = request.args.get('page', 1, type=int)
         purchases = Purchase.query.order_by(Purchase.id.desc()).paginate(page=page, per_page=10)
         return render_template('purchasepage.html', purchases=purchases, items=Item.query.all(), company = Company.query.first())
@@ -166,13 +152,6 @@ def purchase_view():
 @app.route('/sales/', methods=['GET', 'POST'])
 def sales_view():
     if request.method == 'GET':
-        sales_id = request.args.get('sales_id')
-        if sales_id:
-            sale = Sales.query.get(sales_id)
-            if sale:
-                return render_template('salepage.html', sale=sale)
-            else:
-                return "Sale not found", 404
         page = request.args.get('page', 1, type=int)
         sales = Sales.query.order_by(Sales.id.desc()).paginate(page=page, per_page=10)
         return render_template('salepage.html', sales=sales, items=Item.query.all(), company = Company.query.first())
@@ -216,22 +195,17 @@ def get_max_quantity(item_id):
 
 @app.route('/report/', methods=['GET', 'POST'])
 def report_view():
-    page_sales = request.args.get('page_sales', 1, type=int)
-    page_purchases = request.args.get('page_purchases', 1, type=int)
-    per_page = 10  # Number of items per page
 
     if request.method == 'POST':
-        from_date = request.form.get('from_date')
-        to_date = request.form.get('to_date')
+        from_date = request.form.get('from_date') or request.args.get('from_date')
+        to_date = request.form.get('to_date') or request.args.get('to_date')
 
         # Query with pagination
         sales = Sales.query.filter(Sales.timestamp.between(from_date, to_date))\
-            .order_by(Sales.timestamp.desc())\
-            .paginate(page=page_sales, per_page=per_page, error_out=False)
+            .order_by(Sales.timestamp.desc())
         
         purchases = Purchase.query.filter(Purchase.timestamp.between(from_date, to_date))\
-            .order_by(Purchase.timestamp.desc())\
-            .paginate(page=page_purchases, per_page=per_page, error_out=False)
+            .order_by(Purchase.timestamp.desc())
 
         # Calculate totals from all records (not just current page)
         all_sales = Sales.query.filter(Sales.timestamp.between(from_date, to_date)).all()
@@ -240,12 +214,10 @@ def report_view():
     else:
         today = datetime.date.today()
         sales = Sales.query.filter(func.date(Sales.timestamp) == today)\
-            .order_by(Sales.timestamp.desc())\
-            .paginate(page=page_sales, per_page=per_page, error_out=False)
+            .order_by(Sales.timestamp.desc())
         
         purchases = Purchase.query.filter(func.date(Purchase.timestamp) == today)\
-            .order_by(Purchase.timestamp.desc())\
-            .paginate(page=page_purchases, per_page=per_page, error_out=False)
+            .order_by(Purchase.timestamp.desc())
 
         all_sales = Sales.query.filter(func.date(Sales.timestamp) == today).all()
         all_purchases = Purchase.query.filter(func.date(Purchase.timestamp) == today).all()
