@@ -7,58 +7,16 @@
     <title>Sales Report</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background-color: #f4f4f4;
-        }
-        h1 {
-            color: #333;
-        }
-        form {
-            margin-bottom: 20px;
-            padding: 20px;
-            background-color: #fff;
-            border-radius: 5px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        }
-        label {
-            margin-right: 10px;
-        }
-        input[type="date"], input[type="text"], button {
+        input[type="date"]{
             padding: 10px;
             margin: 5px 0;
             border-radius: 4px;
             border: 1px solid #ccc;
             font-size: 14px;
         }
-        button {
-            background-color: #5cb85c;
-            color: white;
-            border: none;
-            cursor: pointer;
-        }
-        button:hover {
-            background-color: #4cae4c;
-        }
-        h2, h3 {
-            color: #555;
-        }
-        ul {
-            list-style-type: none;
-            padding: 0;
-        }
-        li {
-            background: #fff;
-            margin: 5px 0;
-            padding: 10px;
-            border-radius: 4px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        }
     </style>
-</head>
-<body>
+<head>
+<body class="container mt-5">
     <header>
         <nav class="navbar" style="background-color: #e3f2fd">
                 <h2 class="company">{{ company.company_name }}</h2>
@@ -71,33 +29,158 @@
             </nav>
         </header>
     <h1>Sales Report</h1>
-    <form method="POST">
-        <label for="from_date">From Date:</label>
-        <input type="date" name="from_date" required>
-        <label for="to_date">To Date:</label>
-        <input type="date" name="to_date" required>
-        <button type="submit">Generate Report</button>
-    </form>
+    <div class = "card">
+        <div class="card-body">
+        <form action="{{ url_for('report_view') }}" method="POST">
+            <label for="from_date">From Date:</label>
+            <input type="date" name="from_date" required>
+            <label for="to_date">To Date:</label>
+            <input type="date" name="to_date" required>
+            <button class= "btn" style="background-color: #5cb85c;" type="submit">Generate Report</button>
+            <button class= "btn" style="background-color: #5cb85c;"type="button" onclick="window.location='{{ report_view_url }}';">Reset</button>
+        </form>
+        </div>
+    </div><br>
 
     {% if total_sales is not none %}
-        <h2>Summary</h2>
-        <p><strong>Total Sales:</strong> {{ total_sales }}</p>
-        <p><strong>Total Purchases:</strong> {{ total_purchases }}</p>
-        <p><strong>Net Profitability:</strong> {{ net_profitability }}</p>
-
-        <h3>Sales Details</h3>
-        <ul>
-            {% for sale in sales %}
-                <li>{{ sale.timestamp }}: {{ sale.amount }}</li>
-            {% endfor %}
-        </ul>
-
-        <h3>Purchase Details</h3>
-        <ul>
-            {% for purchase in purchases %}
-                <li>{{ purchase.timestamp }}: {{ purchase.amount }}</li>
-            {% endfor %}
-        </ul>
+        <div class="card">
+            <div class="card-header">
+                <h3>Summary</h3>
+            </div>
+            <div class="card-body">
+                <p><strong>Total Sales:</strong> {{ total_sales }}</p>
+                <p><strong>Total Purchases:</strong> {{ total_purchases }}</p>
+                <p><strong>Net Profitability:</strong> {{ net_profitability }}</p>
+            </div>
+        </div>
+        <br>
+        <div class="card">
+            <div class="card-header">
+                <h3>Sale Details</h3>
+            </div>
+            <div class="card-body">
+                <ul class="list-group">
+                    {% for sale in sales %}
+                        <li class="list-group-item">
+                            {{ sale.item.item_name }} - 
+                            Qty: {{ sale.qty }} × ₹{{ "%.2f"|format(sale.rate) }} = 
+                            ₹{{ "%.2f"|format(sale.amount) }} 
+                            <small class="text-muted">
+                                ({{ sale.timestamp }})
+                            </small>
+                        </li>
+                    {% endfor %}
+                </ul>
+                {% if sales.items %}
+                    <div class="mt-3">
+                        <strong>Total: ₹{{ "%.2f"|format(total_sales) }}</strong>
+                    </div>
+                    <div class="mt-3">
+                        <nav aria-label="Sales pagination">
+                            <ul class="pagination justify-content-center">
+                                {% if sales.has_prev %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="{{ url_for('report_view', page_sales=sales.prev_num, page_purchases=purchases.page) }}">&laquo; Previous</a>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">&laquo; Previous</span>
+                                    </li>
+                                {% endif %}
+                                
+                                {% for page in sales.iter_pages() %}
+                                    {% if page %}
+                                        <li class="page-item {% if page == sales.page %}active{% endif %}">
+                                            <a class="page-link" href="{{ url_for('report_view', page_sales=page, page_purchases=purchases.page) }}">{{ page }}</a>
+                                        </li>
+                                    {% else %}
+                                        <li class="page-item disabled">
+                                            <span class="page-link">...</span>
+                                        </li>
+                                    {% endif %}
+                                {% endfor %}
+                                
+                                {% if sales.has_next %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="{{ url_for('report_view', page_sales=sales.next_num, page_purchases=purchases.page) }}">Next &raquo;</a>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">Next &raquo;</span>
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                    </div>
+                {% else %}
+                    <p class="text-muted">No sales found</p>
+                {% endif %}
+            </div>
+        </div>
+        <br>
+        <div class="card">
+            <div class="card-header">
+                <h3>Purchase Details</h3>
+            </div>
+            <div class="card-body">
+                <ul class="list-group">
+                    {% for purchase in purchases %}
+                        <li class="list-group-item">
+                            {{ purchase.item.item_name }} - 
+                            Qty: {{ purchase.qty }} × ₹{{ "%.2f"|format(purchase.rate) }} = 
+                            ₹{{ "%.2f"|format(purchase.amount) }} 
+                            <small class="text-muted">
+                                ({{ purchase.timestamp }})
+                            </small>
+                        </li>
+                    {% endfor %}
+                </ul>
+                {% if purchases.items %}
+                    <div class="mt-3">
+                        <strong>Total: ₹{{ "%.2f"|format(total_purchases) }}</strong>
+                    </div>
+                    <div class="mt-3">
+                        <nav aria-label="Purchases pagination">
+                            <ul class="pagination justify-content-center">
+                                {% if purchases.has_prev %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="{{ url_for('report_view', page_sales=sales.page, page_purchases=purchases.prev_num) }}">&laquo; Previous</a>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">&laquo; Previous</span>
+                                    </li>
+                                {% endif %}
+                                
+                                {% for page in purchases.iter_pages() %}
+                                    {% if page %}
+                                        <li class="page-item {% if page == purchases.page %}active{% endif %}">
+                                            <a class="page-link" href="{{ url_for('report_view', page_sales=sales.page, page_purchases=page) }}">{{ page }}</a>
+                                        </li>
+                                    {% else %}
+                                        <li class="page-item disabled">
+                                            <span class="page-link">...</span>
+                                        </li>
+                                    {% endif %}
+                                {% endfor %}
+                                
+                                {% if purchases.has_next %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="{{ url_for('report_view', page_sales=sales.page, page_purchases=purchases.next_num) }}">Next &raquo;</a>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">Next &raquo;</span>
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                    </div>
+                {% else %}
+                    <p class="text-muted">No purchases found</p>
+                {% endif %}
+            </div>
+        </div>
     {% endif %}
 </body>
 </html>

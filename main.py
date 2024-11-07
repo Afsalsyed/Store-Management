@@ -1,6 +1,8 @@
+import datetime
 from flask import Flask, request, render_template, redirect, url_for, jsonify, flash
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
+from sqlalchemy import func
 
 
 app = Flask(__name__)
@@ -82,9 +84,9 @@ def item_view():
                     db.session.commit()
                     flash("Item updated successfully!", "success")
                 else:
-                    flash("Item not found", "error")
+                    flash("Item not found", "danger")
             except Exception as e:
-                flash("An error occurred: " + str(e), "error")
+                flash("An error occurred: " + str(e), "danger")
             return redirect(url_for('item_view'))
 
         elif request.form.get('_method') == 'DELETE':
@@ -94,25 +96,25 @@ def item_view():
                 if item:
                     db.session.delete(item)
                     db.session.commit()
-                    flash("Item deleted successfully!", "error")
+                    flash("Item deleted successfully!", "success")
                 else:
-                    flash("Item not found", "error")
+                    flash("Item not found", "danger")
             except Exception as e:
-                flash("An error occurred: " + str(e), "error")
+                flash("An error occurred: " + str(e), "danger")
             return redirect(url_for('item_view'))
 
         else:  # Regular POST for adding a new item
             try:
                 existing_item = Item.query.filter(Item.item_name.ilike(request.form['item_name'])).first()
                 if existing_item:
-                    flash("Item already exists", "error")
+                    flash("Item already exists", "danger")
                     return redirect(url_for('item_view'))
                 item = Item(item_name=request.form['item_name'])
                 db.session.add(item)
                 db.session.commit()
                 flash("Item added successfully!", "success")
             except Exception as e:
-                flash("An error occurred: " + str(e), "error")
+                flash("An error occurred: " + str(e), "danger")
             return redirect(url_for('item_view'))
 
 
@@ -140,7 +142,8 @@ def purchase_view():
 
             # Check company balance
             if company.cash_balance < amount:
-                return "Insufficient cash balance", 400
+                flash("Insufficient cash balance", "danger")
+                return redirect(url_for('purchase_view'))
 
             # Fetch the item and update quantity
             item = Item.query.get(item_id)
@@ -157,7 +160,8 @@ def purchase_view():
             return redirect(url_for('purchase_view'))
         
         except Exception as e:
-            return f"Error: {str(e)}", 400
+            flash(f"Error: {str(e)}", "danger")
+            return redirect(url_for('purchase_view'))
 
 @app.route('/sales/', methods=['GET', 'POST'])
 def sales_view():
@@ -209,28 +213,54 @@ def get_max_quantity(item_id):
     else:
         return jsonify({'max_quantity': 0, 'bought_at': 0}), 404
 
+
 @app.route('/report/', methods=['GET', 'POST'])
 def report_view():
+    page_sales = request.args.get('page_sales', 1, type=int)
+    page_purchases = request.args.get('page_purchases', 1, type=int)
+    per_page = 10  # Number of items per page
+
     if request.method == 'POST':
-        # Handle form submission
         from_date = request.form.get('from_date')
         to_date = request.form.get('to_date')
 
-        # Query sales and purchases within the specified date range
-        sales = Sales.query.filter(Sales.timestamp.between(from_date, to_date)).all()
-        purchases = Purchase.query.filter(Purchase.timestamp.between(from_date, to_date)).all()
+        # Query with pagination
+        sales = Sales.query.filter(Sales.timestamp.between(from_date, to_date))\
+            .order_by(Sales.timestamp.desc())\
+            .paginate(page=page_sales, per_page=per_page, error_out=False)
+        
+        purchases = Purchase.query.filter(Purchase.timestamp.between(from_date, to_date))\
+            .order_by(Purchase.timestamp.desc())\
+            .paginate(page=page_purchases, per_page=per_page, error_out=False)
 
-        # Calculate totals
-        total_sales = sum(sale.amount for sale in sales)
-        total_purchases = sum(purchase.amount for purchase in purchases)
-        net_profitability = total_sales - total_purchases
+        # Calculate totals from all records (not just current page)
+        all_sales = Sales.query.filter(Sales.timestamp.between(from_date, to_date)).all()
+        all_purchases = Purchase.query.filter(Purchase.timestamp.between(from_date, to_date)).all()
+        
+    else:
+        today = datetime.date.today()
+        sales = Sales.query.filter(func.date(Sales.timestamp) == today)\
+            .order_by(Sales.timestamp.desc())\
+            .paginate(page=page_sales, per_page=per_page, error_out=False)
+        
+        purchases = Purchase.query.filter(func.date(Purchase.timestamp) == today)\
+            .order_by(Purchase.timestamp.desc())\
+            .paginate(page=page_purchases, per_page=per_page, error_out=False)
 
-        return render_template('report.html',
-                               total_sales=total_sales, total_purchases=total_purchases, net_profitability=net_profitability, sales=sales,
-                                 purchases=purchases, company = Company.query.first())
+        all_sales = Sales.query.filter(func.date(Sales.timestamp) == today).all()
+        all_purchases = Purchase.query.filter(func.date(Purchase.timestamp) == today).all()
 
-    return render_template('report.html', company = Company.query.first())
+    total_sales = sum(sale.amount for sale in all_sales)
+    total_purchases = sum(purchase.amount for purchase in all_purchases)
+    net_profitability = total_sales - total_purchases
 
+    return render_template('report.html',
+                         sales=sales,
+                         purchases=purchases,
+                         total_sales=total_sales,
+                         total_purchases=total_purchases,
+                         net_profitability=net_profitability,
+                         company=Company.query.first())
 
 
 

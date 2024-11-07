@@ -18,8 +18,6 @@
             </div>
         </nav>
     </header>
-    <h1>Sales</h1>
-
     <!-- Form to Add Sale -->
     <form action="{{ url_for('sales_view') }}" method="POST">
         <h3>Add New Sale</h3>
@@ -137,14 +135,17 @@
             }
             calculateAmount(); // Update amount if valid
         });
-        $('#rate').on('input', function() {
-            let boughtat = $(this).data('bought-at') || Infinity;
-            let currentrate = parseFloat($(this).val());
-            if (currentrate < boughtat) {
-                alert(`Cannot sell a product at a lose`);
-                $(this).val(boughtat); // Set to max allowed if exceeded
+        $('form').on('submit', function(e) {
+            let rate = parseFloat($('#rate').val());
+            let boughtat = $('#rate').data('bought-at') || Infinity;
+            
+            if (rate < boughtat) {
+                e.preventDefault(); // Prevent form submission
+                alert(`Cannot sell a product at a loss`);
+                $('#rate').val(boughtat);
+                calculateAmount();
+                return false;
             }
-            calculateAmount(); // Update amount if valid
         });
     </script>
 </body>
